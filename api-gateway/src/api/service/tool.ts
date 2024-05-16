@@ -35,13 +35,17 @@ import { UseCache } from '../../helpers/decorators/cache.js';
 import { Auth } from '../../auth/auth.decorator.js';
 import { AnyFilesInterceptor } from '../../helpers/interceptors/multipart.js';
 import { UploadedFiles } from '../../helpers/decorators/file.js';
-import { MultipartFile } from '../../helpers/interceptors/types/index.js';;
+import { MultipartFile } from '../../helpers/interceptors/types/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
 
 const ONLY_SR = ' Only users with the Standard Registry role are allowed to make the request.'
 
 @Controller('tools')
 @ApiTags('tools')
 export class ToolsApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
     /**
      * Create new tool
      */
@@ -73,6 +77,7 @@ export class ToolsApi {
             }
             const guardian = new Guardians();
             const item = await guardian.createTool(tool, req.user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], req.user))
             return res.status(201).send(item);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -164,6 +169,7 @@ export class ToolsApi {
     })
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache()
     async getTools(@Req() req, @Response() res): Promise<any> {
         try {
             const guardians = new Guardians();
@@ -219,6 +225,7 @@ export class ToolsApi {
                 throw new Error('Invalid id')
             }
             const result = await guardian.deleteTool(req.params.id, req.user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], req.user))
             return res.status(200).send(result);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -262,6 +269,7 @@ export class ToolsApi {
     })
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache()
     async getToolById(@Req() req, @Response() res): Promise<any> {
         try {
             const guardian = new Guardians();
@@ -323,6 +331,7 @@ export class ToolsApi {
         }
         try {
             const result = await guardian.updateTool(req.params.id, tool, req.user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], req.user))
             return res.status(201).send(result);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);

@@ -6,10 +6,15 @@ import { InternalServerErrorDTO } from '../../middlewares/validation/schemas/err
 import { SuggestionsConfigDTO, SuggestionsConfigItemDTO, SuggestionsInputDTO, SuggestionsOutputDTO, } from '../../middlewares/validation/schemas/suggestions.js';
 import { AuthGuard } from '../../auth/auth-guard.js';
 import { Auth } from '../../auth/auth.decorator.js';
+import { UseCache } from '../../helpers/decorators/cache.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
 
 @Controller('suggestions')
 @ApiTags('suggestions')
 export class SuggestionsApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
     @ApiOperation({
         summary: 'Get next and nested suggested block types',
         description:
@@ -92,6 +97,7 @@ export class SuggestionsApi {
     ): Promise<SuggestionsConfigDTO> {
         const guardians = new Guardians();
         const user = req.user;
+        await this.cacheService.invalidate(getCacheKey([req.url], user))
         return {
             items: await guardians.setPolicySuggestionsConfig(body.items, user),
         };
@@ -128,6 +134,7 @@ export class SuggestionsApi {
     @Get('/config')
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache()
     async getPolicySuggestionsConfig(
         @Req() req
     ): Promise<SuggestionsConfigDTO> {

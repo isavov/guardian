@@ -10,7 +10,7 @@ import { Users } from '../users.js';
 import { getCacheKey } from './utils/index.js';
 
 //constants
-import { CACHE, META_DATA } from '../../constants/index.js';
+import { CACHE, CACHE_PREFIXES, META_DATA } from '../../constants/index.js';
 
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
@@ -24,21 +24,23 @@ export class CacheInterceptor implements NestInterceptor {
 
     const ttl = Reflect.getMetadata(META_DATA.TTL, context.getHandler()) ?? CACHE.DEFAULT_TTL;
     const isExpress = Reflect.getMetadata(META_DATA.EXPRESS, context.getHandler());
+    const isFastify = Reflect.getMetadata(META_DATA.FASTIFY, context.getHandler());
 
     const token = request.headers.authorization?.split(' ')[1];
-    let user = {}
+    let user = {};
 
-    if(token) {
+    if (token) {
       const users: Users = new Users();
       try {
         user = await users.getUserByToken(token);
       } catch (error) {
-        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED)
+        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
       }
     }
 
     const { url: route } = request;
-    const cacheKey = getCacheKey(route, user);
+    const [cacheKey] = getCacheKey([route], user, CACHE_PREFIXES.CACHE);
+    const [cacheTag] = getCacheKey([route.split('?')[0]], user);
 
     return of(null).pipe(
       switchMap(async () => {
@@ -50,7 +52,7 @@ export class CacheInterceptor implements NestInterceptor {
       }),
       switchMap(resultResponse => {
         if (resultResponse) {
-          if (isExpress) {
+          if (isFastify || isExpress) {
             return of(responseContext.send(resultResponse));
           }
 
@@ -61,11 +63,15 @@ export class CacheInterceptor implements NestInterceptor {
           tap(async response => {
             let result = response;
 
+            if (isFastify) {
+              result = request.locals;
+            }
+
             if (isExpress) {
               result = response.locals.data;
             }
 
-            await this.cacheService.set(cacheKey, JSON.stringify(result), ttl);
+            await this.cacheService.set(cacheKey, JSON.stringify(result), ttl, cacheTag);
           }),
         );
       }),

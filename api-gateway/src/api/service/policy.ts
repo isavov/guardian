@@ -13,17 +13,22 @@ import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Par
 import { ApiAcceptedResponse, ApiBody, ApiConsumes, ApiExtraModels, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiSecurity, ApiTags, ApiUnauthorizedResponse, getSchemaPath, } from '@nestjs/swagger';
 import { ApiImplicitParam } from '@nestjs/swagger/dist/decorators/api-implicit-param.decorator.js';
 import { ApiImplicitQuery } from '@nestjs/swagger/dist/decorators/api-implicit-query.decorator.js';
-import { CACHE } from '../../constants/index.js';
+import { CACHE, PREFIXES } from '../../constants/index.js';
 import { UseCache } from '../../helpers/decorators/cache.js';
 import { AnyFilesInterceptor } from '../../helpers/interceptors/multipart.js';
 import { UploadedFiles } from '../../helpers/decorators/file.js';
 import { MultipartFile } from '../../helpers/interceptors/types/index.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
 
 const ONLY_SR = ' Only users with the Standard Registry role are allowed to make the request.'
 
 @Controller('policies')
 @ApiTags('policies')
 export class PolicyApi {
+
+    constructor(private readonly cacheService: CacheService) {
+    }
     @ApiOperation({
         summary: 'Return a list of all policies.',
         description: 'Returns all policies. Only users with the Standard Registry and Installer role are allowed to make the request.',
@@ -1450,6 +1455,10 @@ export class PolicyApi {
                 versionOfTopicId,
                 req.body.metadata
             );
+
+            const invalidedCacheTags = [PREFIXES.ARTIFACTS, PREFIXES.SCHEMES, PREFIXES.MODULES, PREFIXES.TOOLS]
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheTags], req.user))
+
             return res.status(201).send(policies);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -1624,11 +1633,14 @@ export class PolicyApi {
         @AuthUser() user: IAuthUser,
         @Body() file: any,
         @Query('versionOfTopicId') versionOfTopicId,
+        @Req() req,
         @Response() res: any
     ): Promise<any> {
         const engineService = new PolicyEngine();
         try {
             const policies = await engineService.importFile(user, file, versionOfTopicId);
+            const invalidedCacheTags = [PREFIXES.ARTIFACTS]
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheTags], req.user))
             return res.status(201).send(policies);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);

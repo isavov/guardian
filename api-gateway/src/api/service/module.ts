@@ -8,10 +8,16 @@ import { ApiImplicitQuery } from '@nestjs/swagger/dist/decorators/api-implicit-q
 import { SchemaUtils } from '../../helpers/schema-utils.js';
 import { UseCache } from '../../helpers/decorators/cache.js';
 import { Auth } from '../../auth/auth.decorator.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
+import { PREFIXES } from '../../constants/index.js';
 
 @Controller('modules')
 @ApiTags('modules')
 export class ModulesApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     @ApiOperation({
         summary: 'Creates a new module.',
         description: 'Creates a new module. Only users with the Standard Registry role are allowed to make the request.',
@@ -37,6 +43,14 @@ export class ModulesApi {
                 throw new HttpException('Invalid module config', HttpStatus.UNPROCESSABLE_ENTITY);
             }
             const item = await guardian.createModule(module, req.user.did);
+
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.status(201).send(item);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -154,7 +168,7 @@ export class ModulesApi {
      */
     @Get('/schemas')
     @HttpCode(HttpStatus.OK)
-    @UseCache({ isExpress: true })
+    // @UseCache({ isExpress: true })
     @Auth(UserRole.STANDARD_REGISTRY)
     async getModuleSchemas(
         @Req() req,
@@ -214,6 +228,13 @@ export class ModulesApi {
             SchemaHelper.updateOwner(newSchema, owner);
             const schema = await guardians.createSchema(newSchema);
 
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.status(201).send(SchemaUtils.toOld(schema));
         } catch (error) {
             await (new Logger()).error(error, ['API_GATEWAY']);
@@ -236,6 +257,14 @@ export class ModulesApi {
                 throw new Error('Invalid uuid')
             }
             const result = await guardian.deleteModule(req.params.uuid, req.user.did);
+
+            const invalidedCacheKeys = [
+              `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+              `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            ];
+
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.status(200).send(result);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -270,7 +299,7 @@ export class ModulesApi {
     })
     @Get('/menu')
     @HttpCode(HttpStatus.OK)
-    @UseCache()
+    // @UseCache()
     @Auth(UserRole.STANDARD_REGISTRY)
     async getMenu(@Req() req): Promise<any> {
         try {
@@ -311,6 +340,7 @@ export class ModulesApi {
     @Get('/:uuid')
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache()
     async getModule(@Req() req, @Response() res): Promise<any> {
         try {
             const guardian = new Guardians();
@@ -361,6 +391,13 @@ export class ModulesApi {
         }
         try {
             const result = await guardian.updateModule(req.params.uuid, module, req.user.did);
+
+            const invalidedCacheKeys = [
+              `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+              `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            ];
+
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
             return res.status(201).send(result);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -470,6 +507,14 @@ export class ModulesApi {
         const guardian = new Guardians();
         try {
             const module = await guardian.importModuleMessage(req.body.messageId, req.user.did);
+
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.status(201).send(module);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -506,6 +551,14 @@ export class ModulesApi {
         const guardian = new Guardians();
         try {
             const module = await guardian.importModuleFile(req.body, req.user.did);
+
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.status(201).send(module);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -542,6 +595,14 @@ export class ModulesApi {
         const guardian = new Guardians();
         try {
             const module = await guardian.previewModuleMessage(req.body.messageId, req.user.did);
+
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.send(module);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -578,6 +639,14 @@ export class ModulesApi {
         const guardian = new Guardians();
         try {
             const module = await guardian.previewModuleFile(req.body, req.user.did);
+
+            // const invalidedCacheKeys = [
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+            //   `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            // ];
+            //
+            // await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
+
             return res.send(module);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -614,6 +683,13 @@ export class ModulesApi {
         const guardian = new Guardians();
         try {
             const module = await guardian.publishModule(req.params.uuid, req.user.did, req.body);
+
+            const invalidedCacheKeys = [
+              `${PREFIXES.MODULES}${req.params.uuid}/export/file`,
+              `${PREFIXES.MODULES}${req.params.uuid}/export/message`
+            ];
+
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
             return res.send(module);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);

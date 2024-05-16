@@ -33,10 +33,17 @@ import { ApiImplicitParam } from '@nestjs/swagger/dist/decorators/api-implicit-p
 import { Auth } from '../../auth/auth.decorator.js';
 import { AnyFilesInterceptor } from '../../helpers/interceptors/multipart.js';
 import { UploadedFiles } from '../../helpers/decorators/file.js';
+import { UseCache } from '../../helpers/decorators/cache.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
+import { PREFIXES } from '../../constants/index.js';
 
 @Controller('artifacts')
 @ApiTags('artifacts')
 export class ArtifactApi {
+
+    constructor(private readonly cacheService: CacheService) {
+    }
     /**
      * Get artifacts
      * @param req
@@ -102,6 +109,7 @@ export class ArtifactApi {
     @ApiExtraModels(ArtifactDTOItem, InternalServerErrorDTO)
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache({isFastify: true})
     async getArtifacts(@Req() req, @Response() res): Promise<any> {
         try {
             const guardians = new Guardians();
@@ -119,6 +127,9 @@ export class ArtifactApi {
                 options.pageSize = req.query.pageSize;
             }
             const { artifacts, count } = await guardians.getArtifacts(options);
+
+            req.locals = artifacts
+
             return res.header('X-Total-Count', count).send(artifacts);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -199,6 +210,8 @@ export class ArtifactApi {
                     uploadedArtifacts.push(result);
                 }
             }
+            const invalidedCacheKeys = [`/${PREFIXES.ARTIFACTS}`]
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheKeys], req.user))
             return uploadedArtifacts;
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -250,6 +263,8 @@ export class ArtifactApi {
         try {
             const guardian = new Guardians();
             await guardian.deleteArtifact(req.params.artifactId, req.user.did)
+            const invalidedCacheTags = [PREFIXES.ARTIFACTS]
+            await this.cacheService.invalidate(getCacheKey([req.url, ...invalidedCacheTags], req.user))
             return res.status(204).send();
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);

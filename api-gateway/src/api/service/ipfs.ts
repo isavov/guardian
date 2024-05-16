@@ -82,7 +82,7 @@ export class IpfsApi {
     @ApiSecurity('bearerAuth')
     @Get('/file/:cid')
     @HttpCode(HttpStatus.OK)
-    @UseCache({ ttl: CACHE.LONG_TTL, isExpress: true })
+    @UseCache({ ttl: CACHE.LONG_TTL, isFastify: true })
     async getFile(@Req() req, @Response() res): Promise<any> {
         if (!req.user) {
             throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);

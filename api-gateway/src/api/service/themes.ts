@@ -4,10 +4,17 @@ import { Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Post, Put
 import { ApiTags } from '@nestjs/swagger';
 import { Auth } from '../../auth/auth.decorator.js';
 import { UserRole } from '@guardian/interfaces';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
+import { UseCache } from '../../helpers/decorators/cache.js';
+import { PREFIXES } from '../../constants/index.js';
 
 @Controller('themes')
 @ApiTags('themes')
 export class ThemesApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     @Post('/')
     @HttpCode(HttpStatus.CREATED)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.AUDITOR, UserRole.USER)
@@ -15,6 +22,7 @@ export class ThemesApi {
         try {
             const guardians = new Guardians();
             const item = await guardians.createTheme(req.body, req.user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], req.user))
             return res.status(201).send(item);
         } catch (error) {
             await (new Logger()).error(error, ['API_GATEWAY']);
@@ -38,6 +46,12 @@ export class ThemesApi {
                 throw new HttpException('Theme not found.', HttpStatus.NOT_FOUND)
             }
             const theme = await guardians.updateTheme(req.params.themeId, newTheme, user.did);
+
+            const invalidedCacheKeys = [
+              `${PREFIXES.THEMES}${req.params.themeId}/export/file`,
+            ];
+
+            await this.cacheService.invalidate(getCacheKey([req.url, invalidedCacheKeys], user))
             return res.send(theme);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -55,6 +69,12 @@ export class ThemesApi {
                 throw new HttpException('Invalid theme id', HttpStatus.UNPROCESSABLE_ENTITY)
             }
             const result = await guardians.deleteTheme(req.params.themeId, req.user.did);
+
+            const invalidedCacheKeys = [
+              `${PREFIXES.THEMES}${req.params.themeId}/export/file`,
+            ];
+
+            await this.cacheService.invalidate(getCacheKey([req.url, invalidedCacheKeys], req.user))
             return res.send(result);
         } catch (error) {
             await (new Logger()).error(error, ['API_GATEWAY']);
@@ -65,6 +85,7 @@ export class ThemesApi {
     @Get('/')
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.AUDITOR, UserRole.USER)
+    @UseCache()
     async getThemes(@Req() req, @Response() res): Promise<any> {
         try {
             const user = req.user;
@@ -97,6 +118,7 @@ export class ThemesApi {
     @Get('/:themeId/export/file')
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.AUDITOR, UserRole.USER)
+    @UseCache()
     async exportTheme(@Req() req, @Response() res): Promise<any> {
         const guardian = new Guardians();
         try {

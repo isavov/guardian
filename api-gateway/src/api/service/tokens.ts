@@ -33,6 +33,9 @@ import {
 } from '@nestjs/swagger';
 import { InternalServerErrorDTO } from '../../middlewares/validation/schemas/index.js';
 import { Auth } from '../../auth/auth.decorator.js';
+// import { UseCache } from '../../helpers/decorators/cache.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
 
 /**
  * Token route
@@ -99,9 +102,13 @@ async function setDynamicTokenPolicy(tokens: any[], engineService?: PolicyEngine
 @Controller('tokens')
 @ApiTags('tokens')
 export class TokensApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     @Get('/')
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.USER)
+    // @UseCache()
     async getTokens(@Req() req, @Response() res): Promise<any> {
         try {
             const guardians = new Guardians();
@@ -164,6 +171,7 @@ export class TokensApi {
             const map = await engineService.getTokensMap(user.did);
             tokens = setTokensPolicies(tokens, map);
 
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return res.status(201).send(tokens);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -250,6 +258,7 @@ export class TokensApi {
             throw new HttpException('Invalid creator.', HttpStatus.FORBIDDEN)
         }
 
+        await this.cacheService.invalidate(getCacheKey([req.url], user))
         return await guardians.updateToken(token);
     }
 

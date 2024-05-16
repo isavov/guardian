@@ -1,5 +1,5 @@
 import { Guardians } from '../../helpers/guardians.js';
-import { ISchema, IUser, SchemaCategory, SchemaEntity, SchemaHelper, SchemaStatus, StatusType, TaskAction, UserRole } from '@guardian/interfaces';
+import { ISchema, SchemaCategory, SchemaEntity, SchemaHelper, SchemaStatus, StatusType, TaskAction, UserRole } from '@guardian/interfaces';
 import { IAuthUser, Logger, RunFunctionAsync, SchemaImportExport } from '@guardian/common';
 import { ApiBody, ApiExtraModels, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Param, Post, Put, Req, Response } from '@nestjs/common';
@@ -445,6 +445,7 @@ export class SchemaApi {
     })
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.AUDITOR, UserRole.USER)
+    @UseCache()
     async getSchemasPageByTopicId(@Req() req, @Response() res): Promise<any> {
         try {
             const guardians = new Guardians();
@@ -668,6 +669,7 @@ export class SchemaApi {
                 user.did,
                 topicId,
             );
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return res.status(201).send(SchemaUtils.toOld(schemas));
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -811,7 +813,6 @@ export class SchemaApi {
     async setSchema(@Req() req, @Response() res): Promise<any> {
         try {
             const user = req.user;
-            await this.cacheService.invalidate(getCacheKey(req.url, user))
             const newSchema = req.body;
             const guardians = new Guardians();
             const schema = await guardians.getSchemaById(newSchema.id);
@@ -827,6 +828,7 @@ export class SchemaApi {
             }
             SchemaUtils.fromOld(newSchema);
             const schemas = await updateSchema(newSchema, user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return res.send(SchemaUtils.toOld(schemas));
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -891,6 +893,7 @@ export class SchemaApi {
         try {
             const schemas = (await guardians.deleteSchema(schemaId, user?.did, true) as ISchema[]);
             SchemaHelper.updatePermission(schemas, user.did);
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return res.send(SchemaUtils.toOld(schemas));
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -1656,6 +1659,7 @@ export class SchemaApi {
             SchemaHelper.updateOwner(newSchema, owner);
             const schema = await guardians.createSystemSchema(newSchema);
 
+            await this.cacheService.invalidate(getCacheKey([req.url], req.user))
             return res.status(201).send(SchemaUtils.toOld(schema));
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);
@@ -1718,6 +1722,7 @@ export class SchemaApi {
     })
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY)
+    @UseCache()
     async getSystemSchema(@Req() req, @Response() res): Promise<any> {
         try {
             const user = req.user;

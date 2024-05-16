@@ -5,10 +5,16 @@ import { SchemaUtils } from '../../helpers/schema-utils.js';
 import { Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Post, Put, Req, Response } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Auth } from '../../auth/auth.decorator.js';
+// import { UseCache } from '../../helpers/decorators/cache.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
 
 @Controller('tags')
 @ApiTags('tags')
 export class TagsApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     @Post('/')
     @HttpCode(HttpStatus.CREATED)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.USER)
@@ -194,6 +200,7 @@ export class TagsApi {
             SchemaHelper.updateOwner(newSchema, owner);
             const schema = await guardians.createTagSchema(newSchema);
 
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return res.status(201).send(SchemaUtils.toOld(schema));
         } catch (error) {
             await (new Logger()).error(error, ['API_GATEWAY']);

@@ -37,6 +37,8 @@ import {
 } from '../../middlewares/validation/schemas/contracts.js';
 import { UseCache } from '../../helpers/decorators/cache.js';
 import { Auth } from '../../auth/auth.decorator.js';
+import { CacheService } from '../../helpers/cache-service.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
 
 /**
  * Contracts api
@@ -44,6 +46,9 @@ import { Auth } from '../../auth/auth.decorator.js';
 @Controller('contracts')
 @ApiTags('contracts')
 export class ContractsApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     //#region Common contract endpoints
     @Get()
     @ApiBearerAuth()
@@ -99,6 +104,7 @@ export class ContractsApi {
     })
     @HttpCode(HttpStatus.OK)
     @Auth(UserRole.STANDARD_REGISTRY, UserRole.USER)
+    @UseCache()
     async getContracts(@Req() req, @Response() res): Promise<any> {
         try {
             const user = req.user;
@@ -158,6 +164,7 @@ export class ContractsApi {
             const user = req.user;
             const { description, type } = req.body;
             const guardians = new Guardians();
+            await this.cacheService.invalidate(getCacheKey([req.url], user))
             return await guardians.createContract(user.did, description, type);
         } catch (error) {
             new Logger().error(error, ['API_GATEWAY']);

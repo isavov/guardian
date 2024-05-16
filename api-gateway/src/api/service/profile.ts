@@ -3,7 +3,7 @@ import { DidDocumentStatus, SchemaEntity, TaskAction, TopicType, UserRole } from
 import { IAuthUser, Logger, RunFunctionAsync } from '@guardian/common';
 import { TaskManager } from '../../helpers/task-manager.js';
 import { ServiceError } from '../../helpers/service-requests-base.js';
-import { Controller, Get, HttpCode, HttpException, HttpStatus, Put, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpException, HttpStatus, Put, Param, Post, Body, Req } from '@nestjs/common';
 import { AuthUser } from '../../auth/authorization-helper.js';
 import { Auth } from '../../auth/auth.decorator.js';
 import { ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiSecurity, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
@@ -11,10 +11,15 @@ import { ApiImplicitParam } from '@nestjs/swagger/dist/decorators/api-implicit-p
 import { ProfileDTO, InternalServerErrorDTO, TaskDTO, CredentialsDTO, DidDocumentDTO, DidDocumentStatusDTO, DidDocumentWithKeyDTO, DidKeyStatusDTO } from '../../middlewares/validation/schemas/index.js';
 import { CACHE } from '../../constants/index.js';
 import { UseCache } from '../../helpers/decorators/cache.js';
+import { getCacheKey } from '../../helpers/interceptors/utils/index.js';
+import { CacheService } from '../../helpers/cache-service.js';
 
 @Controller('profiles')
 @ApiTags('profiles')
 export class ProfileApi {
+    constructor(private readonly cacheService: CacheService) {
+    }
+
     /**
      * Get user.profile
      */
@@ -51,6 +56,7 @@ export class ProfileApi {
         type: InternalServerErrorDTO
     })
     @HttpCode(HttpStatus.OK)
+    @UseCache()
     async getProfile(
         @AuthUser() user: IAuthUser
     ): Promise<any> {
@@ -159,11 +165,13 @@ export class ProfileApi {
     @HttpCode(HttpStatus.NO_CONTENT)
     async setUserProfile(
         @AuthUser() user: IAuthUser,
-        @Body() profile: any
+        @Body() profile: any,
+        @Req() req
     ): Promise<any> {
         const username: string = user.username;
         const guardians = new Guardians();
         await guardians.createUserProfileCommon(username, profile);
+        await this.cacheService.invalidate(getCacheKey([req.url], req.user))
         return;
     }
 
