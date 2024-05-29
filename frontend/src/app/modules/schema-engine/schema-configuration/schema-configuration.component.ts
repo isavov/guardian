@@ -46,9 +46,11 @@ export class SchemaConfigurationComponent implements OnInit {
     @Input('schemaType') schemaType!: SchemaType;
     @Input('extended') extended!: boolean;
     @Input('properties') properties: { title: string; _id: string; value: string }[];
+    @Input('subSchemas') subSchemas!: Schema[];
 
     @Output('change-form') changeForm = new EventEmitter<any>();
     @Output('change-fields') changeFields = new EventEmitter<any>();
+    @Output('use-update-sub-schemas') useUpdateSubSchemas = new EventEmitter<any>();
 
     public started = false;
     public loading: boolean = true;
@@ -64,7 +66,6 @@ export class SchemaConfigurationComponent implements OnInit {
     public errors!: any[];
     public schemaTypes!: any[];
     public schemaTypeMap!: any;
-    public subSchemas!: Schema[];
     public destroy$: Subject<boolean> = new Subject<boolean>();
     private _patternByNumberType: any = {
         duration: /^[0-9]+$/,
@@ -221,19 +222,23 @@ export class SchemaConfigurationComponent implements OnInit {
         }
 
         this.loading = true;
-        this.updateSubSchemas(this.value?.topicId || this.topicId).then(() => {
-            this.buildForm();
-            if (changes.value && this.value) {
-                this.updateFormControls();
-            }
-            this.changeForm.emit(this);
-            setTimeout(() => {
-                this.started = true;
-            });
-            setTimeout(() => {
-                this.loading = false;
-            }, 500);
+
+        // this.updateSubSchemas(this.value?.topicId || this.topicId);
+
+        this.buildForm();
+        // if (changes.value && this.value) {
+        //     setTimeout(() => {
+        //         this.updateFormControls();
+        //     }, 100)
+        // }
+        this.changeForm.emit(this);
+        setTimeout(() => {
+            this.started = true;
         });
+        setTimeout(() => {
+            this.loading = false;
+        }, 500);
+
     }
 
     public ngOnDestroy() {
@@ -256,8 +261,9 @@ export class SchemaConfigurationComponent implements OnInit {
         }
     }
 
-    private buildForm() {
+    buildForm() {
         if (this.dataForm) {
+            console.log('this.dataForm');
             if (this.isSystem) {
                 this.dataForm.setValue({
                     name: '',
@@ -302,7 +308,9 @@ export class SchemaConfigurationComponent implements OnInit {
                 });
             }
         } else {
+            console.log('!this.dataForm');
             this.fieldsForm = this.fb.group({});
+            console.log('this.fb', this.fb);
             this.conditionsForm = new FormGroup({});
 
             let props: any;
@@ -339,6 +347,7 @@ export class SchemaConfigurationComponent implements OnInit {
                     conditions: this.conditionsForm
                 };
             } else if (this.isPolicy) {
+                console.log('this.fieldsForm', this.fieldsForm);
                 props = {
                     name: ['', Validators.required],
                     description: [''],
@@ -372,31 +381,28 @@ export class SchemaConfigurationComponent implements OnInit {
     public onFilter(event: any) {
         const topicId = event.value;
         this.loading = true;
-        this.updateSubSchemas(topicId).then(() => {
-            setTimeout(() => {
-                this.loading = false;
-            }, 500);
-        });
+
+        this.updateSubSchemas(topicId);
+
+        setTimeout(() => {
+            this.loading = false;
+        }, 500);
     }
 
-    private updateSubSchemas(topicId?: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            if (!topicId || topicId === 'draft') {
-                this.mappingSubSchemas();
-                resolve();
-            }
-            this.schemaService.getSubSchemas(topicId, this.category).subscribe((data) => {
-                const subSchemas = SchemaHelper.map(data || []);
-                this.mappingSubSchemas(subSchemas, topicId);
-                resolve();
-            }, (error) => {
-                console.error(error);
-                resolve();
-            });
-        })
+    private updateSubSchemas(topicId?: string): void {
+        if (!topicId || topicId === 'draft') {
+            this.mappingSubSchemas();
+        }
+
+        console.log('this.dataform', this.dataForm);
+
+        this.useUpdateSubSchemas.emit();
+        // const subSchemas = SchemaHelper.map(this.subSchemas || []);
+        //
+        // this.mappingSubSchemas(subSchemas, topicId);
     }
 
-    private mappingSubSchemas(data?: Schema[], topicId?: string): void {
+    mappingSubSchemas(data?: Schema[], topicId?: string): void {
         this.subSchemas = [];
         this.schemaTypes = [];
         if (Array.isArray(data)) {
@@ -513,7 +519,7 @@ export class SchemaConfigurationComponent implements OnInit {
         }
     }
 
-    private updateFormControls() {
+    updateFormControls() {
         this.fieldsForm.reset();
 
         if (this.isSystem) {
@@ -774,6 +780,7 @@ export class SchemaConfigurationComponent implements OnInit {
 
     private buildSchema(value: any) {
         const schema = new Schema(this.value);
+
         schema.name = value.name;
         schema.description = value.description;
         schema.entity = value.entity;
