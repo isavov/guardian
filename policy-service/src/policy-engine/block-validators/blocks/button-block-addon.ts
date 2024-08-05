@@ -21,6 +21,17 @@ export class ButtonBlockAddon {
             if (!ref.options.name) {
                 validator.addError('Button name is empty');
             }
+            if (ref.options.dialog) {
+                if (!ref.options.dialogTitle) {
+                    validator.addError('Dialog title is empty');
+                }
+                if (!ref.options.dialogDescription) {
+                    validator.addError('Dialog description is empty');
+                }
+                if (!ref.options.dialogResultFieldPath) {
+                    validator.addError('Dialog result field path is empty');
+                }
+            }
         } catch (error) {
             validator.addError(`Unhandled exception ${validator.getErrorMessage(error)}`);
         }

@@ -233,7 +233,7 @@ const ButtonBlockAddon: IBlockSetting = {
 }
 
 const DropdownBlockAddon: IBlockSetting = {
-    type: BlockType.ButtonBlockAddon,
+    type: BlockType.DropdownBlockAddon,
     icon: BlockIcons[BlockType.DropdownBlockAddon],
     group: BlockGroup.Documents,
     header: BlockHeaders.Addons,
@@ -299,13 +299,20 @@ const DocumentsViewer: IBlockSetting = {
         {
             type: BlockType.ButtonBlockAddon,
             group: BlockGroup.UnGrouped,
+        },
+        {
+            type: BlockType.DropdownBlockAddon,
+            group: BlockGroup.UnGrouped,
         }
     ],
     about: {
         output: (value: any, block: PolicyBlock) => {
             const result = value ? value.slice() : [];
-            const buttons = block.children.filter(
-                (child) => child.blockType === BlockType.ButtonBlockAddon
+            const buttons = block.children.filter((child) =>
+                [
+                    BlockType.ButtonBlockAddon,
+                    BlockType.DropdownBlockAddon,
+                ].includes(child.blockType as any)
             );
             for (const button of buttons) {
                 result.push(button.tag);

@@ -1,8 +1,8 @@
-import { BasicBlock } from '../helpers/decorators/index.js';
+import { EventBlock } from '../helpers/decorators/index.js';
 import { PolicyComponentsUtils } from '../policy-components-utils.js';
 import {
     IPolicyAddonBlock,
-    IPolicyInterfaceBlock,
+    IPolicySourceBlock,
 } from '../policy-engine.interface.js';
 import {
     ChildrenType,
@@ -14,12 +14,12 @@ import { PolicyUser } from '../policy-user.js';
 /**
  * Button with UI
  */
-@BasicBlock({
+@EventBlock({
     blockType: 'buttonBlockAddon',
     commonBlock: false,
     about: {
-        label: 'Button Addon',
-        title: `Add 'Button Addon' Block`,
+        label: 'Button',
+        title: `Add 'Button' Block`,
         post: true,
         get: true,
         children: ChildrenType.Special,
@@ -59,18 +59,21 @@ import { PolicyUser } from '../policy-user.js';
                         label: 'Dialog Title',
                         title: 'Dialog Title',
                         type: PropertyType.Input,
+                        required: true,
                     },
                     {
                         name: 'dialogDescription',
                         label: 'Dialog Description',
                         title: 'Dialog Description',
                         type: PropertyType.Input,
+                        required: true,
                     },
                     {
                         name: 'dialogResultFieldPath',
                         label: 'Dialog Result Field Path',
                         title: 'Dialog Result Field Path',
                         type: PropertyType.Path,
+                        required: true,
                     },
                 ],
                 visible: 'dialog === true',
@@ -106,17 +109,18 @@ export class ButtonBlockAddon {
             dialogResult: string;
         }
     ): Promise<any> {
-        const ref =
-            PolicyComponentsUtils.GetBlockRef<IPolicyInterfaceBlock>(this);
-        const parent = PolicyComponentsUtils.GetBlockRef<any>(ref.parent);
-        await parent.onButtonAddonClick(
+        const ref = PolicyComponentsUtils.GetBlockRef<IPolicyAddonBlock>(this);
+        const parent = PolicyComponentsUtils.GetBlockRef<IPolicySourceBlock>(
+            ref.parent
+        );
+        await parent.onAddonEvent(
             user,
             ref.tag,
             blockData.documentId,
             ref.options.dialog
                 ? {
                       field: ref.options.dialogOptions.dialogResultFieldPath,
-                      result: blockData.dialogResult,
+                      value: blockData.dialogResult,
                   }
                 : null
         );

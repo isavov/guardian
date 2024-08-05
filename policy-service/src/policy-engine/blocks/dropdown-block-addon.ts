@@ -1,7 +1,8 @@
-import { BasicBlock } from '../helpers/decorators/index.js';
+import { EventBlock } from '../helpers/decorators/index.js';
 import { PolicyComponentsUtils } from '../policy-components-utils.js';
 import {
     IPolicyAddonBlock,
+    IPolicySourceBlock,
 } from '../policy-engine.interface.js';
 import {
     ChildrenType,
@@ -15,12 +16,12 @@ import { BlockActionError } from '../errors/index.js';
 /**
  * Button with UI
  */
-@BasicBlock({
+@EventBlock({
     blockType: 'dropdownBlockAddon',
     commonBlock: false,
     about: {
-        label: 'Dropdown Addon',
-        title: `Add 'Dropdown Addon' Block`,
+        label: 'Dropdown',
+        title: `Add 'Dropdown' Block`,
         post: true,
         get: true,
         children: ChildrenType.Special,
@@ -108,8 +109,10 @@ export class DropdownBlockAddon {
                 ref.uuid
             );
         }
-        const parent = PolicyComponentsUtils.GetBlockRef<any>(ref.parent);
-        await parent.onButtonAddonClick(user, ref.tag, blockData.documentId, {
+        const parent = PolicyComponentsUtils.GetBlockRef<IPolicySourceBlock>(
+            ref.parent
+        );
+        await parent.onAddonEvent(user, ref.tag, blockData.documentId, {
             field: ref.options.field,
             value: findOptions(document, ref.options.optionValue),
         });

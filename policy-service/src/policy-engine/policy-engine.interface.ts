@@ -533,6 +533,18 @@ export interface IPolicySourceBlock extends IPolicyBlock {
      * Get common addons
      */
     getCommonAddons(): IPolicyBlock[];
+
+    /**
+     * On addon event
+     * @param user
+     * @param tag
+     * @param documentId
+     * @param options
+     */
+    onAddonEvent(user: PolicyUser, tag: string, documentId: string, options?: {
+        field: string,
+        value: string;
+    }) : Promise<void>
 }
 
 /**

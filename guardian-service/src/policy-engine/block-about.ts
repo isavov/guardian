@@ -643,8 +643,8 @@ export const BlockAbout = {
         'defaultEvent': false
     },
     'buttonBlockAddon': {
-        'label': 'Button Addon',
-        'title': 'Add \'Button Addon\' Block',
+        'label': 'Button',
+        'title': 'Add \'Button\' Block',
         'post': true,
         'get': true,
         'children': 'Special',
@@ -671,7 +671,7 @@ export const BlockAbout = {
                 'label': 'Dialog',
                 'title': 'Dialog',
                 'type': 'Checkbox',
-                'default': false
+                'default': false,
             },
             {
                 'name': 'dialogOptions',
@@ -684,18 +684,21 @@ export const BlockAbout = {
                         'label': 'Dialog Title',
                         'title': 'Dialog Title',
                         'type': 'Input',
+                        'required': true,
                     },
                     {
                         'name': 'dialogDescription',
                         'label': 'Dialog Description',
                         'title': 'Dialog Description',
                         'type': 'Input',
+                        'required': true,
                     },
                     {
                         'name': 'dialogResultFieldPath',
                         'label': 'Dialog Result Field Path',
                         'title': 'Dialog Result Field Path',
                         'type': 'Path',
+                        'required': true,
                     }
                 ],
                 'visible': 'dialog === true'
@@ -703,8 +706,8 @@ export const BlockAbout = {
         ]
     },
     'dropdownBlockAddon': {
-        'label': 'Dropdown Addon',
-        'title': `Add 'Dropdown Addon' Block`,
+        'label': 'Dropdown',
+        'title': `Add 'Dropdown' Block`,
         'post': true,
         'get': true,
         'children': 'Special',
