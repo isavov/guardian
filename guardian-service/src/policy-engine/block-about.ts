@@ -642,6 +642,105 @@ export const BlockAbout = {
         'output': null,
         'defaultEvent': false
     },
+    'buttonBlockAddon': {
+        'label': 'Button Addon',
+        'title': 'Add \'Button Addon\' Block',
+        'post': true,
+        'get': true,
+        'children': 'Special',
+        'control': 'Special',
+        'input': null,
+        'output': null,
+        'defaultEvent': false,
+        'properties': [
+            {
+                'name': 'name',
+                'label': 'Button Name',
+                'title': 'Button Name',
+                'type': 'Input',
+                'required': true,
+            },
+            {
+                'name': 'uiClass',
+                'label': 'UI Class',
+                'title': 'UI Class',
+                'type': 'Input',
+            },
+            {
+                'name': 'dialog',
+                'label': 'Dialog',
+                'title': 'Dialog',
+                'type': 'Checkbox',
+                'default': false
+            },
+            {
+                'name': 'dialogOptions',
+                'label': 'Dialog Options',
+                'title': 'Dialog Options',
+                'type': 'Group',
+                'properties': [
+                    {
+                        'name': 'dialogTitle',
+                        'label': 'Dialog Title',
+                        'title': 'Dialog Title',
+                        'type': 'Input',
+                    },
+                    {
+                        'name': 'dialogDescription',
+                        'label': 'Dialog Description',
+                        'title': 'Dialog Description',
+                        'type': 'Input',
+                    },
+                    {
+                        'name': 'dialogResultFieldPath',
+                        'label': 'Dialog Result Field Path',
+                        'title': 'Dialog Result Field Path',
+                        'type': 'Path',
+                    }
+                ],
+                'visible': 'dialog === true'
+            }
+        ]
+    },
+    'dropdownBlockAddon': {
+        'label': 'Dropdown Addon',
+        'title': `Add 'Dropdown Addon' Block`,
+        'post': true,
+        'get': true,
+        'children': 'Special',
+        'control': 'Special',
+        'input': null,
+        'output': null,
+        'defaultEvent': false,
+        'properties': [
+            {
+                'name': 'label',
+                'label': 'Options Label',
+                'title': 'Button Name',
+                'type': 'Input',
+            },
+            {
+                'name': 'optionName',
+                'label': 'Option Name',
+                'title': 'Option Name',
+                'type': 'Input',
+            },
+            {
+                'name': 'optionValue',
+                'label': 'Option Value',
+                'title': 'Option Value',
+                'type': 'Input',
+                'required': true,
+            },
+            {
+                'name': 'field',
+                'label': 'Field',
+                'title': 'Field',
+                'type': 'Path',
+                'required': true,
+            },
+        ],
+    },
     'tokenActionBlock': {
         'label': 'Token Action',
         'title': 'Add \'Token Action\' Block',

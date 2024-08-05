@@ -30,6 +30,18 @@ export function DataSourceBlock(options: Partial<PolicyBlockDecoratorOptions>) {
             }
 
             /**
+             * On button addon block click
+             * @param args
+             * @returns
+             */
+            async onButtonAddonClick(...args: any[]): Promise<any> {
+                if (typeof super.onButtonAddonClick === 'function') {
+                    return super.onButtonAddonClick(...args);
+                }
+                return {}
+            }
+
+            /**
              * Get filters addon
              * @protected
              */

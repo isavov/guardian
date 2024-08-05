@@ -269,7 +269,7 @@ export interface IPolicyBlock {
      * @param data
      */
     triggerEvents<T>(
-        eventType: PolicyOutputEventType,
+        eventType: PolicyOutputEventType | string,
         user: PolicyUser,
         data: T
     ): void;

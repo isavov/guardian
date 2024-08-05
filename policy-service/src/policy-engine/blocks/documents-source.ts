@@ -5,8 +5,9 @@ import { ChildrenType, ControlType } from '../interfaces/block-about.js';
 import { PolicyInputEventType } from '../interfaces/index.js';
 import { PolicyUser } from '../policy-user.js';
 import { StateField } from '../helpers/decorators/index.js';
-import { ExternalEvent, ExternalEventType } from '../interfaces/external-event.js';
+import { ExternalDocuments, ExternalEvent, ExternalEventType } from '../interfaces/external-event.js';
 import ObjGet from 'lodash.get';
+import { BlockActionError } from '../errors/index.js';
 
 /**
  * Document source block with UI
@@ -58,6 +59,62 @@ export class InterfaceDocumentsSource {
         }
     }
 
+    private _active = false;
+
+    setObjectValue(data: any, field: any, value: any) {
+        let result: any = null;
+        if (data && field) {
+            const keys = field.split('.');
+            result = data;
+            for (let i = 0; i < keys.length - 1; i++) {
+                const key = keys[i];
+                if (key === 'L' && Array.isArray(result)) {
+                    result = result[result.length - 1];
+                } else {
+                    result = result[key];
+                }
+            }
+            result[keys[keys.length - 1]] = value;
+        }
+        return result;
+    }
+
+    async onButtonAddonClick(user: PolicyUser, blockTag: string, documentId: string, options?: {
+        field: string,
+        value: string;
+    }) {
+        const ref = PolicyComponentsUtils.GetBlockRef<IPolicySourceBlock>(this);
+        if (this._active) {
+            throw new BlockActionError('Button click is already handling.', ref.blockType, ref.uuid);
+        }
+        this._active = true;
+        try {
+            const fields = ref.options?.uiMetaData?.fields
+            ?.filter((field) => field?.bindBlocks?.includes(blockTag));
+            const sourceAddons = fields.map(field => field.bindGroup);
+            const documents = await this._getData(user, ref) as any[];
+            // tslint:disable-next-line:no-shadowed-variable
+            let document = documents.find((document) => (document.id === documentId) && sourceAddons.includes(document.__sourceTag__));
+            if (!document) {
+                throw new BlockActionError('Document is not found.', ref.blockType, ref.uuid);
+            }
+
+            if (options) {
+                document = this.setObjectValue(document, options.field, options.value);
+            }
+            const state = { data: document };
+            ref.triggerEvents(blockTag, user, state);
+            PolicyComponentsUtils.ExternalEventFn(new ExternalEvent(ExternalEventType.Set, ref, user, {
+                button: ref.tag,
+                documents: ExternalDocuments(document)
+            }));
+        } catch (error) {
+            throw error;
+        } finally {
+            this._active = false;
+        }
+    }
+
     /**
      * Set block data
      * @param user
@@ -72,6 +129,12 @@ export class InterfaceDocumentsSource {
 
         PolicyComponentsUtils.BlockUpdateFn(ref.parent, user);
         PolicyComponentsUtils.ExternalEventFn(new ExternalEvent(ExternalEventType.Set, ref, user, data));
+    }
+
+    private async _getData(user: PolicyUser, ref: IPolicySourceBlock, sortState = {}, paginationData? , history?) {
+        return ref.options.uiMetaData.enableSorting
+            ? await this.getDataByAggregationFilters(ref, user, sortState, paginationData, history)
+            : await ref.getGlobalSources(user, paginationData);
     }
 
     /**
@@ -135,13 +198,9 @@ export class InterfaceDocumentsSource {
         const history = commonAddonBlocks.find((addon) => {
             return addon.blockType === 'historyAddon';
         }) as IPolicyAddonBlock;
-
-        const enableCommonSorting = ref.options.uiMetaData.enableSorting;
         const sortState = this.state[user.id] || {};
-        let data: any = enableCommonSorting
-            ? await this.getDataByAggregationFilters(ref, user, sortState, paginationData, history)
-            : await ref.getGlobalSources(user, paginationData);
-
+        let data: any = await this._getData(user, ref, sortState, paginationData, history);
+        const enableCommonSorting = ref.options.uiMetaData.enableSorting;
         if (
             !enableCommonSorting && history
         ) {

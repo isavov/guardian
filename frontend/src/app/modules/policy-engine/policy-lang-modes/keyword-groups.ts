@@ -129,6 +129,7 @@ export const arrayGroupKeywords = [
     'privateFields',
     'outputFields',
     'equations',
+    'bindBlocks'
 ];
 export const flagsGroupKeywords = [
     'static',
